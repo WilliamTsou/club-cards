@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- TODO：把「你的名字」換掉 -->
+    <title>你的名字的名片</title>
+    <style>
+      /* 這是給還沒做完 w10 名片的人用的範本，版面已經可以用，配色請換成你自己的 */
+      :root {
+        --bg: #f6f5f2;
+        --surface: #ffffff;
+        --text: #1f2328;
+        --text-soft: #656d76;
+        --accent: #1a73e8;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: system-ui, "Noto Sans TC", sans-serif;
+      }
+
+      .card {
+        min-height: 100vh;
+        display: flex;
+      }
+
+      .card__profile {
+        flex-basis: 33%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border-right: 2px solid var(--accent);
+      }
+
+      .card__avatar {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+
+      .card__name {
+        margin: 16px 0 4px;
+        font-size: 2rem;
+        color: var(--accent);
+      }
+
+      .card__nickname {
+        margin: 0;
+        color: var(--text-soft);
+      }
+
+      .card__content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 0 48px;
+        background: var(--surface);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article class="card">
+
+        <header class="card__profile">
+          <!-- TODO：把 avatar.svg 換成你的照片（例如 avatar.jpg，500KB 以下），alt 也要改 -->
+          <img class="card__avatar" src="avatar.svg" alt="你的名字的頭像">
+          <h1 class="card__name">你的名字</h1>
+          <p class="card__nickname">你的暱稱</p>
+        </header>
+
+        <section class="card__content">
+          <h2>用一句話介紹你自己</h2>
+          <ol>
+            <li>關於你的第一件事</li>
+            <li>關於你的第二件事</li>
+            <li>關於你的第三件事</li>
+          </ol>
+        </section>
+
+      </article>
+    </main>
+  </body>
+</html>
