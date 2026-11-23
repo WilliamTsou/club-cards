@@ -13,12 +13,16 @@
 ## 第一次：Fork 與 clone（只做一次）
 
 1. 到 https://github.com/williamtsou/club-cards 右上角按 **Fork** → Create fork
-2. clone **你自己的** fork：
+2. 建立 Token（push 用）：Settings → Developer settings → Personal access tokens → **Fine-grained tokens** → Generate new token
+   - Repository access：**Only select repositories** → 選你的 `club-cards` fork
+   - Repository permissions → **Contents：Read and write**
+   - 第一次 push 時，Windows 在登入視窗選 Token 分頁貼上；Mac 在 Password 欄貼上
+3. clone **你自己的** fork：
    ```bash
    git clone https://github.com/你的帳號/club-cards.git
    cd club-cards
    ```
-3. 把原始 repo 加成 `upstream`，之後才拿得到別人的更新：
+4. 把原始 repo 加成 `upstream`，之後才拿得到別人的更新：
    ```bash
    git remote add upstream https://github.com/williamtsou/club-cards.git
    git remote -v
@@ -41,14 +45,17 @@
    git push -u origin <分支名>
    ```
 4. **開 PR**：回到 GitHub 按 **Compare & pull request**，確認方向是 `你的帳號/club-cards` → `williamtsou/club-cards`，填好 PR 模板，寫 `Closes #<Issue 編號>`
-5. **審核**：維護者審核通過後，用 **Squash and merge** 合併
-6. **合併後**：
+5. **審核**：收到修改意見時，在**同一個分支**上改完再 `git push`，PR 會自動更新，不用重開；改完在 PR 回覆留言。維護者審核通過後，用 **Squash and merge** 合併
+6. **合併後：同步並刪掉用完的分支**
    ```bash
    git switch main
    git pull upstream main
-   git push origin main        # 讓你的 fork 也跟上
+   git push origin main                 # 讓你的 fork 也跟上
+   git branch -D <分支名>               # Squash 合併後 Git 認不出已合併，要用大寫 -D
+   git push origin --delete <分支名>    # 刪 fork 上的分支（PR 頁按過 Delete branch 就不用）
+   git fetch origin --prune             # 清掉已經不存在的遠端分支紀錄
    ```
-   下一個任務開新分支，不要沿用舊的
+   只刪**已經 Merged** 的分支。下一個任務開新分支，不要沿用舊的
 
 ## 新增自己的名片
 
@@ -56,7 +63,7 @@
    - 還沒有名片？複製 `cards/_template/` 來改：`cp -r cards/_template cards/你的帳號`
 2. 打開根目錄的 `index.html`，**依 GitHub 帳號的字母順序**，把下面這行插在對的位置：
    ```html
-   <li><a href="cards/你的帳號/">你的名字</a></li>
+   <li><a href="cards/你的帳號/index.html">你的名字</a></li>
    ```
    例如清單裡已經有 `amy`、`kim`，你是 `cat`，就插在它們中間
 3. 用 Live Server 打開確認點得進去
