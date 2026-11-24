@@ -83,6 +83,10 @@
 | 拿原始 repo 的最新版 | `git pull upstream main` |
 | 推到自己的 fork | `git push -u origin 分支名`（第一次）、之後 `git push` |
 | 解衝突解到一半想放棄 | `git merge --abort` |
+| 刪掉已合併的分支（電腦上） | `git branch -D 分支名`（Squash 合併後要用大寫） |
+| 刪掉 fork 上的分支 | `git push origin --delete 分支名` |
+| 清掉不存在的遠端分支紀錄 | `git fetch origin --prune` |
+| 看所有分支（含遠端） | `git branch -a` |
 | 丟掉還沒 commit 的修改 | `git restore 檔名` |
 | commit 訊息打錯（還沒 push） | `git commit --amend` |
 
@@ -92,7 +96,10 @@
 | --- | --- | --- |
 | `command not found` | 沒裝，或裝完沒重開終端機 | 重開 VS Code / 終端機 |
 | `not a git repository` | 不在 repo 資料夾裡 | `pwd` 看在哪，`cd` 到對的地方 |
-| `Permission denied` / 403 | push 到別人的 repo，或沒登入 | 確認是 push 到 `origin`（你的 fork） |
+| `Permission denied` / 403 | push 到別人的 repo，或 Token 權限不對 | 確認是 push 到 `origin`（你的 fork）；Token 要選到你的 fork、Contents 要 Read and write |
+| `Authentication failed` | 密碼欄打了 GitHub 密碼，或 Token 過期 | 密碼欄要貼 Token；過期就重新產生 |
+| `not fully merged`（刪分支時） | Squash 合併後 Git 認不出已合併 | 確認 PR 已 Merged，改用 `git branch -D` |
 | `rejected (fetch first)` | 遠端有你沒有的新東西 | 先 `git pull`，再 push |
 | `bash: gh: command not found`（在 PowerShell 打 bash） | 叫到 WSL 的 bash | 改用 Git Bash |
 | 網頁上出現 `<<<<<<<` | 解衝突忘了刪標記 | 刪掉標記再 commit |
+| 忘記開分支就 commit 在 main | 修改進了 main，跟老師的 main 不一樣 | `git switch -c 新分支` → `git fetch upstream` → `git branch -f --no-track main upstream/main` |

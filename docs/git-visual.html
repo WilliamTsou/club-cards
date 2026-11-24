@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Git 動畫圖解</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  /* 版面：上方章節列，中間是 16:9 的動畫舞台，下方是指令與說明；舞台裡的東西用同一組座標（800×450）擺放 */
+  :root {
+    --bg: #eef1f5;
+    --surface: #ffffff;
+    --zone: #f7f9fc;
+    --ink: #172033;
+    --muted: #5d6879;
+    --line: #cfd6e0;
+    --main: #2563c9;   /* main 分支、老師的 repo */
+    --feat: #d4731b;   /* 你的分支、你的 fork */
+    --head: #b8237a;   /* HEAD */
+    --ok: #18864b;
+    --okbg: #e3f4ea;
+    --bad: #c93636;
+    --badbg: #fbe7e7;
+    --note: #fff6d9;
+    --font-display: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-body: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+    --font-mono: "JetBrains Mono", "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0f141c; --surface: #18202c; --zone: #141b25; --ink: #e6ebf3; --muted: #97a3b5; --line: #2e3a4b;
+      --main: #5b93f0; --feat: #f0954a; --head: #e0559f; --ok: #3fbf78; --okbg: #13301f; --bad: #ef6464; --badbg: #3a1717; --note: #33301c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0f141c; --surface: #18202c; --zone: #141b25; --ink: #e6ebf3; --muted: #97a3b5; --line: #2e3a4b;
+    --main: #5b93f0; --feat: #f0954a; --head: #e0559f; --ok: #3fbf78; --okbg: #13301f; --bad: #ef6464; --badbg: #3a1717; --note: #33301c;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); line-height: 1.6; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 24px 16px 48px; display: grid; gap: 16px; }
+  header h1 { font-family: var(--font-display); font-weight: 900; font-size: clamp(1.5rem, 3.5vw, 2.1rem); margin: 0; text-wrap: balance; }
+  header p { margin: 4px 0 0; color: var(--muted); max-width: 65ch; }
+
+  nav.chapters { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  nav.chapters button {
+    flex: 0 0 auto; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink);
+    font: 600 .92rem var(--font-body); padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  }
+  nav.chapters button[aria-current="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  nav.chapters button:focus-visible, .controls button:focus-visible { outline: 3px solid var(--head); outline-offset: 2px; }
+
+  .panel { background: var(--surface); border: 1.5px solid var(--line); border-radius: 16px; overflow: hidden; }
+  .panel-head { padding: 16px 20px 0; }
+  .panel-head h2 { font-family: var(--font-display); margin: 0; font-size: 1.3rem; text-wrap: balance; }
+  .panel-head p { margin: 4px 0 0; color: var(--muted); }
+  .panel-head .ref { display: inline-block; margin-top: 8px; font-size: .85rem; font-weight: 700; color: var(--head); background: var(--bg); padding: 2px 10px; border-radius: 999px; }
+
+  .stage-scroll { overflow-x: auto; padding: 12px 20px; }
+  .stage { position: relative; aspect-ratio: 16 / 9; min-width: 620px; background: var(--bg); border-radius: 12px; overflow: hidden; }
+  .stage svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+
+  .el { position: absolute; transform: translate(-50%, -50%); white-space: pre-line; text-align: center; line-height: 1.35;
+        transition: left .7s ease, top .7s ease, opacity .45s ease, background-color .45s, color .45s, border-color .45s; }
+  .zone { border: 2px dashed var(--line); border-radius: 1em; background: var(--zone); color: var(--muted); font-weight: 700;
+          display: flex; align-items: flex-start; justify-content: center; padding-top: .45em; font-size: .95em; }
+  .zone.on { border-style: solid; border-color: var(--head); color: var(--head); }
+  .zone.bad { border-color: var(--bad); color: var(--bad); background: var(--badbg); }
+  .node { width: 3em; height: 3em; border-radius: 50%; background: var(--main); color: #fff; display: grid; place-items: center;
+          font: 700 .82em var(--font-mono); border: 3px solid var(--surface); box-shadow: 0 0 0 2px var(--main); }
+  .node.feat { background: var(--feat); box-shadow: 0 0 0 2px var(--feat); }
+  .node.ghost { background: var(--surface); color: var(--muted); box-shadow: 0 0 0 2px var(--muted); border-style: dashed; }
+  .node.squash { background: var(--ok); box-shadow: 0 0 0 2px var(--ok); }
+  .tag { padding: .15em .65em; border-radius: 999px; background: var(--main); color: #fff; font: 700 .78em var(--font-mono); }
+  .tag.feat { background: var(--feat); }
+  .tag.head { background: var(--head); }
+  .tag.ghost { background: transparent; color: var(--muted); border: 1.5px dashed var(--muted); }
+  .tag.plain { background: var(--ink); color: var(--bg); }
+  .card { background: var(--surface); border: 1.5px solid var(--line); border-left: 6px solid var(--muted); border-radius: .5em;
+          padding: .35em .7em; font: 600 .8em var(--font-mono); text-align: left; }
+  .card.mod { border-left-color: var(--bad); }
+  .card.staged { border-left-color: var(--ok); }
+  .card.commit { border-left-color: var(--main); }
+  .card.key { border-left-color: var(--head); }
+  .card.bad { border-color: var(--bad); background: var(--badbg); }
+  .repo { background: var(--surface); border: 2px solid var(--ink); border-radius: .6em; padding: .45em .8em; font-size: .82em; font-weight: 700; }
+  .repo.up { border-color: var(--main); }
+  .repo.fork { border-color: var(--feat); }
+  .gate { background: var(--ink); color: var(--bg); border-radius: .6em; padding: .5em .7em; font-size: .8em; font-weight: 700; }
+  .note { background: var(--note); color: var(--ink); border-radius: .45em; padding: .3em .65em; font-size: .78em; }
+  .note.ok { background: var(--okbg); color: var(--ok); font-weight: 700; }
+  .note.bad { background: var(--badbg); color: var(--bad); font-weight: 700; }
+  .code { background: var(--surface); border: 1.5px solid var(--line); border-radius: .3em; padding: .15em .5em;
+          font: 600 .76em var(--font-mono); text-align: left; }
+  .code.add { border-color: var(--ok); background: var(--okbg); }
+  .code.ours { border-color: var(--head); }
+  .code.theirs { border-color: var(--feat); }
+  .code.mark { color: var(--bad); background: var(--badbg); border-color: var(--bad); }
+  .colhead { font-size: .76em; font-weight: 700; color: var(--muted); }
+
+  .ln { stroke: var(--muted); stroke-width: 2.2; fill: none; transition: opacity .45s; }
+  .ln.main { stroke: var(--main); } .ln.feat { stroke: var(--feat); }
+  .ln.ok { stroke: var(--ok); } .ln.bad { stroke: var(--bad); }
+  .ln.dash { stroke-dasharray: 7 6; }
+  .lbl { font: 700 12.5px var(--font-body); fill: var(--ink); paint-order: stroke; stroke: var(--bg); stroke-width: 5px; transition: opacity .45s; }
+
+  .below { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 4px 20px 20px; }
+  .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .controls button { border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 10px;
+                     padding: 8px 14px; font: 600 .95rem var(--font-body); cursor: pointer; }
+  .controls button.primary { background: var(--head); border-color: var(--head); color: #fff; }
+  .controls button:disabled { opacity: .4; cursor: default; }
+  .dots { display: flex; gap: 6px; margin-left: auto; flex-wrap: wrap; }
+  .dots button { width: 12px; height: 12px; padding: 0; border-radius: 50%; border: 0; background: var(--line); cursor: pointer; }
+  .dots button[aria-current="true"] { background: var(--head); }
+  .counter { font: 600 .9rem var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+  .cmd { margin: 0; background: #111827; color: #e5edf8; border-radius: 10px; padding: 10px 14px; font: 600 .92rem var(--font-mono);
+         overflow-x: auto; white-space: pre; min-height: 2.6em; }
+  .cmd:empty::before { content: "（這一步不用打指令）"; color: #8b98ab; font-family: var(--font-body); font-weight: 500; }
+  .say { max-width: 70ch; font-size: 1.02rem; }
+  .say code, .points code { font-family: var(--font-mono); font-size: .9em; background: var(--bg); padding: .05em .35em; border-radius: 4px; }
+  .points { border-top: 1.5px solid var(--line); padding: 14px 20px 18px; }
+  .points h3 { margin: 0 0 6px; font-size: 1rem; }
+  .points ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 75ch; }
+  footer { color: var(--muted); font-size: .88rem; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .el, .ln, .lbl { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Git 動畫圖解</h1>
+    <p>章節順序跟講義一樣，上到哪一段就打開對應的章節。每一章用「上一步／下一步」看指令背後發生了什麼，鍵盤左右鍵也可以翻頁。</p>
+  </header>
+
+  <nav class="chapters" id="chapters" aria-label="章節"></nav>
+
+  <section class="panel" aria-live="polite">
+    <div class="panel-head">
+      <h2 id="ch-title"></h2>
+      <p id="ch-lead"></p>
+      <p class="ref" id="ch-ref"></p>
+    </div>
+    <div class="stage-scroll">
+      <div class="stage" id="stage">
+        <svg viewBox="0 0 800 450" id="svg" aria-hidden="true">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker>
+            <marker id="ar-ok" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--ok)"/></marker>
+            <marker id="ar-bad" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--bad)"/></marker>
+            <marker id="ar-main" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--main)"/></marker>
+            <marker id="ar-feat" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--feat)"/></marker>
+          </defs>
+          <g id="lines"></g>
+        </svg>
+      </div>
+    </div>
+    <div class="below">
+      <div class="controls">
+        <button id="prev" type="button">◀ 上一步</button>
+        <button id="play" type="button" class="primary">▶ 自動播放</button>
+        <button id="next" type="button">下一步 ▶</button>
+        <span class="counter" id="counter"></span>
+        <div class="dots" id="dots" aria-label="步驟"></div>
+      </div>
+      <pre class="cmd" id="cmd"></pre>
+      <div class="say" id="say"></div>
+    </div>
+    <div class="points">
+      <h3>這一章的重點</h3>
+      <ul id="points"></ul>
+    </div>
+  </section>
+
+  <footer>專案組 Git 教學 · 搭配講義 docs/handout.md 使用</footer>
+</div>
+
+<script>
+/* ---------- 章節資料 ----------
+   els：舞台上的東西（type 決定外觀）；steps：每一步要改的狀態（會累加到下一步）
+   狀態欄位：x,y 中心座標（800×450）、w,h 寬高、o 透明度、t 文字、c 額外樣式
+   ln：線條，a/b 起訖點、o 透明度、c 樣式、lab 標籤、arrow 是否加箭頭 */
+const CH = [
+{
+  id: 'folders', nav: '資料夾與 git init',
+  ref: '講義 1-2 告訴 Git 你是誰、講義 2 終端機尋寶',
+  title: '資料夾、git init 和設定的範圍',
+  lead: 'Git 只管「有 .git 的那個資料夾，和它裡面的所有東西」。設定也分「整台電腦」和「只有這個 repo」兩種範圍。',
+  els: {
+    home: { type: 'zone', t: '~ 家目錄（Windows：C:\\Users\\你　Mac：/Users/你）' },
+    my: { type: 'zone', t: 'my-card/' },
+    cc: { type: 'zone', t: 'club-cards/' },
+    f1: { type: 'card', t: 'index.html' }, f2: { type: 'card', t: 'avatar.jpg' },
+    g1: { type: 'card', t: 'index.html' }, g2: { type: 'card', t: 'cards/' },
+    gm: { type: 'tag', c: 'head', t: '.git' }, gc: { type: 'tag', c: 'head', t: '.git' },
+    nest: { type: 'zone', t: 'club-cards/（裝錯地方）' },
+    gl: { type: 'card', c: 'key', t: '~/.gitconfig（--global）\n整台電腦的所有 repo 都用' },
+    lc: { type: 'card', c: 'commit', t: '.git/config\n不加 --global：只有這個 repo 用' },
+    n1: { type: 'note' }, n2: { type: 'note' }
+  },
+  steps: [
+    { cmd: 'cd ~\nls', say: '資料夾就像房間。<code>~</code> 是你的<b>家目錄</b>，今天的東西都放在這裡。現在家裡有兩個資料夾：w10 做的 <code>my-card</code>，和等一下會出現的 <code>club-cards</code>。',
+      set: { home: { x: 400, y: 245, w: 770, h: 400 }, my: { x: 200, y: 285, w: 300, h: 270 }, cc: { x: 595, y: 285, w: 320, h: 270 },
+             f1: { x: 200, y: 250 }, f2: { x: 200, y: 295 } } },
+    { cmd: 'cd ~/my-card\ngit status', say: '在 my-card 裡打 Git 指令，會得到 <code>fatal: not a git repository</code>。因為這個資料夾<b>沒有 .git</b>，Git 根本不管它。',
+      set: { n1: { x: 200, y: 200, t: '✗ not a git repository', c: 'bad' } } },
+    { cmd: 'git init', say: '<code>git init</code> 會在<b>目前這個資料夾</b>裡建一個隱藏的 <code>.git</code> 資料夾，也就是儲存庫，所有 commit 紀錄都存在裡面。<code>ls -a</code> 才看得到它。',
+      set: { n1: { o: 0 }, gm: { x: 315, y: 175 }, my: { c: 'on' } } },
+    { cmd: '', say: '從現在起，<b>my-card 和它裡面的所有子資料夾</b>都歸這個 .git 管。範圍以外的地方（例如家目錄、隔壁的 club-cards）完全不受影響。所以打 Git 指令前，先 <code>pwd</code> 確認自己在哪個資料夾。',
+      set: { n1: { o: 1, x: 200, y: 200, t: 'Git 的範圍：my-card 整個資料夾', c: 'ok' } } },
+    { cmd: 'cd ~\ngit clone https://github.com/你的帳號/club-cards.git', say: '<code>git clone</code> 下載下來的資料夾<b>已經自帶 .git</b>，不用再 <code>git init</code>。<code>git init</code> 是「從零開始一個新專案」才用。',
+      set: { n1: { o: 0 }, gc: { x: 725, y: 175 }, g1: { x: 595, y: 250 }, g2: { x: 595, y: 295 } } },
+    { cmd: 'cd ~/my-card\ngit clone https://github.com/你的帳號/club-cards.git   # ✗ 錯誤示範', say: '常見錯誤：<b>在 my-card 裡面 clone</b>。結果變成 repo 裡面又有 repo，外層的 Git 會把整包當成一個奇怪的東西，之後 add、commit 都會亂掉。clone 前先 <code>cd ~</code> 回家。',
+      set: { nest: { x: 200, y: 375, w: 230, h: 70, c: 'bad' }, n2: { x: 200, y: 200, t: '✗ repo 裡面又有 repo', c: 'bad' } } },
+    { cmd: 'git config --global user.name "Amy"', say: '設定也有範圍：加 <code>--global</code> 會寫進家目錄的 <code>~/.gitconfig</code>，<b>整台電腦的所有 repo</b> 都用；不加的話寫進那個 repo 的 <code>.git/config</code>，<b>只有那個 repo</b> 用。兩邊都有時，以 repo 自己的為準。',
+      set: { nest: { o: 0 }, n2: { o: 0 }, gl: { x: 400, y: 102 }, lc: { x: 595, y: 370 } } }
+  ],
+  points: [
+    '<code>~</code> = 家目錄；<code>.</code> = 這裡；<code>..</code> = 上一層',
+    'Git 只管「有 .git 的資料夾和它裡面所有東西」，範圍外打 Git 指令會出現 not a git repository',
+    '<code>git init</code> = 從零開始一個新 repo；<code>git clone</code> 下載的已經有 .git，不用 init',
+    '不要在一個 repo 裡面再 clone 另一個 repo，clone 前先 <code>cd ~</code>',
+    '<code>--global</code> 的設定整台電腦都用；不加只有目前這個 repo 用'
+  ]
+},
+{
+  id: 'areas', nav: '三個區域',
+  ref: '講義 1「先懂四件事」、講義 3 Step 8',
+  title: '為什麼要分工作區、暫存區、儲存庫',
+  lead: '多一個暫存區，是為了讓你「挑」要存哪些東西，讓每筆紀錄只做一件事。',
+  els: {
+    zW: { type: 'zone', t: '工作區\n你正在改的檔案' },
+    zS: { type: 'zone', t: '暫存區（staging）\n挑好、準備要存的' },
+    zR: { type: 'zone', t: '儲存庫 .git\n存好的紀錄（commit）' },
+    f: { type: 'card', t: 'index.html' }, a: { type: 'card', t: 'avatar.jpg' }, x: { type: 'card', t: 'test.txt' },
+    c1: { type: 'card', c: 'commit', t: 'a1b2c3d\nfeat: 新增名片和頭像' },
+    c2: { type: 'card', c: 'commit', t: 'e4f5a6b\nstyle: 換配色' },
+    w1: { type: 'note' }, w2: { type: 'note' }, w3: { type: 'note' }, lg: { type: 'code' }
+  },
+  steps: [
+    { cmd: '', say: 'Git 把一個 repo 分成三個區域。你在 VS Code 改檔案，都是在最左邊的<b>工作區</b>。',
+      set: { zW: { x: 150, y: 245, w: 230, h: 360 }, zS: { x: 400, y: 245, w: 230, h: 360 }, zR: { x: 650, y: 245, w: 230, h: 360 },
+             f: { x: 150, y: 150 }, a: { x: 150, y: 200 }, x: { x: 150, y: 250 } } },
+    { cmd: 'git status', say: '你改了名片、換了頭像，還順手建了一個亂寫的 <code>test.txt</code>。<code>git status</code> 用<b>紅字</b>列出這三個改過、還沒放進暫存區的檔案。',
+      set: { f: { c: 'mod' }, a: { c: 'mod' }, x: { c: 'mod' } } },
+    { cmd: 'git add index.html avatar.jpg', say: '<b>為什麼要有暫存區？</b>因為你可以<b>挑</b>。像寄包裹：先決定哪些東西放進箱子，<code>test.txt</code> 是試驗用的，不想存，就不放進去。只放進去的兩個會變<b>綠字</b>。',
+      set: { f: { x: 400, c: 'staged' }, a: { x: 400, c: 'staged' } } },
+    { cmd: 'git commit -m "feat: 新增名片和頭像"', say: '<code>git commit</code> 把暫存區裡的東西封箱寄出，在儲存庫留下一筆<b>快照</b>，有自己的編號（hash）和說明。<code>test.txt</code> 沒放進暫存區，所以<b>沒被存進去</b>，還留在工作區。',
+      set: { c1: { x: 650, y: 150, w: 210 }, f: { x: 150, c: '' }, a: { x: 150, c: '' } } },
+    { cmd: '', say: '三個區域各有用途：<b>工作區</b>隨便改、改壞也沒關係；<b>暫存區</b>挑選和檢查（<code>git diff --staged</code> 看要存的內容）；<b>儲存庫</b>是永久紀錄，隨時可以回到任何一筆。這樣每筆 commit 都只做一件事，歷史紀錄很清楚。',
+      set: { w1: { x: 150, y: 370, t: '隨便改、試錯' }, w2: { x: 400, y: 370, t: '挑選、檢查' }, w3: { x: 650, y: 370, t: '永久紀錄、可回溯' } } },
+    { cmd: '# 又改了配色\ngit add index.html\ngit commit -m "style: 換配色"', say: '再存一筆，就多一張快照。新的 commit 會<b>記得上一筆是誰</b>，紀錄連成一條鏈。',
+      set: { w1: { o: 0 }, w2: { o: 0 }, w3: { o: 0 }, c2: { x: 650, y: 260, w: 210 } },
+      ln: { k12: { a: [650, 233], b: [650, 180], o: 1, arrow: 1, c: 'main', lab: '上一筆' } } },
+    { cmd: 'git log --oneline', say: '<code>git log</code> 列出所有快照，最新的在最上面。',
+      set: { lg: { x: 400, y: 370, t: 'e4f5a6b style: 換配色\na1b2c3d feat: 新增名片和頭像' } } }
+  ],
+  points: [
+    '工作區 = 隨便改；暫存區 = 挑好要存的；儲存庫 = 永久紀錄',
+    '有暫存區，才能「只存一部分」，讓每筆 commit 只做一件事',
+    '<code>git add</code> 放進暫存區（綠字）；<code>git commit</code> 存成一筆快照',
+    '不知道現在在哪個狀態？打 <code>git status</code>'
+  ]
+},
+{
+  id: 'team', nav: '小組專案：clone',
+  ref: '講義 3 Step 2 之前（對照用）',
+  title: '小組專案：大家都有權限，直接 clone',
+  lead: '幾個人的小組，repo 主人把成員加成協作者（collaborator），大家 clone 同一個 repo，在同一個 repo 開分支和 PR。',
+  els: {
+    zc: { type: 'zone', t: 'GitHub（雲端）' }, za: { type: 'zone', t: 'Amy 的電腦' }, zb: { type: 'zone', t: 'Ben 的電腦' },
+    rp: { type: 'repo', c: 'up', t: 'team/project\n協作者：Amy、Ben' },
+    la: { type: 'repo', t: 'project\norigin → team/project' }, lb: { type: 'repo', t: 'project\norigin → team/project' },
+    tb: { type: 'tag', c: 'feat', t: 'add-amy' }, pr: { type: 'card', c: 'key', t: 'PR：add-amy → main\n同一個 repo 裡・Ben 審核' },
+    n1: { type: 'note' }
+  },
+  steps: [
+    { cmd: '# repo 主人：Settings → Collaborators → Add people', say: '<b>情境：小組專案</b>（課堂分組、社團三五個人、公司團隊）。repo 主人把每個成員加成<b>協作者</b>，大家都有寫入權限。',
+      set: { zc: { x: 400, y: 110, w: 770, h: 180 }, za: { x: 200, y: 360, w: 330, h: 160 }, zb: { x: 600, y: 360, w: 330, h: 160 }, rp: { x: 400, y: 115 } } },
+    { cmd: 'git clone https://github.com/team/project.git', say: '大家都 clone <b>同一個 repo</b>。origin 指向的都是 team/project。',
+      set: { la: { x: 200, y: 380 }, lb: { x: 600, y: 380 } },
+      ln: { ca: { a: [350, 150], b: [230, 345], o: 1, arrow: 1, lab: 'clone' }, cb: { a: [450, 150], b: [570, 345], o: 1, arrow: 1, lab: 'clone' } } },
+    { cmd: 'git switch -c add-amy\n# ……改完、commit……\ngit push -u origin add-amy', say: 'Amy 開分支、改完，直接 push 到<b>同一個 repo</b>。因為她有權限，所以成功，repo 上多了一個 add-amy 分支。',
+      set: { tb: { x: 560, y: 115 } },
+      ln: { ca: { o: 0 }, cb: { o: 0 }, pa: { a: [230, 345], b: [350, 150], o: 1, arrow: 1, c: 'ok', lab: 'push ✓' } } },
+    { cmd: '# GitHub 上開 PR', say: 'PR 在<b>同一個 repo 裡</b>開：add-amy → main。Ben 是同組的人，負責審核。',
+      set: { pr: { x: 400, y: 240 } },
+      ln: { pa: { o: 0 }, rv: { a: [570, 345], b: [490, 262], o: 1, arrow: 1, c: 'feat' } } },
+    { cmd: 'git switch main\ngit pull origin main', say: '合併之後，Ben 從 <b>origin</b> 拿最新的 main。小組專案<b>只有 origin</b>，沒有 upstream。',
+      set: { pr: { t: 'PR：add-amy → main\nMerged ✓' }, tb: { o: 0 } },
+      ln: { rv: { o: 0 }, pb: { a: [450, 150], b: [570, 345], o: 1, arrow: 1, c: 'main', lab: 'pull origin' } } },
+    { cmd: '', say: '<b>優點</b>：步驟少，不用 fork。<b>缺點</b>：每個人都要被加權限，每個人都能直接改這個 repo。人一多、彼此不認識（像開源專案、或我們今天這種上課情境），就改用下一章的 <b>fork</b>。',
+      set: { n1: { x: 400, y: 240, t: '適合：人少、彼此信任、都有權限', c: 'ok' }, pr: { o: 0 } },
+      ln: { pb: { o: 0 } } }
+  ],
+  points: [
+    '小組專案：repo 主人把成員加成協作者，大家 clone 同一個 repo',
+    '分支 push 到同一個 repo，PR 也在同一個 repo 裡開',
+    '只有 origin，沒有 upstream：同步用 <code>git pull origin main</code>',
+    '人多、不能給每個人權限時（開源、上課），改用 fork'
+  ]
+},
+{
+  id: 'fork', nav: '大專案：fork + clone',
+  ref: '講義 3 Step 2、4、5',
+  title: '大專案：沒有權限，要先 fork 再 clone',
+  lead: '開源專案、上課這種人很多的情境，不可能每個人都加權限。clone 是「雲端 → 你的電腦」；fork 是「雲端 → 雲端（你的帳號）」。',
+  els: {
+    zc: { type: 'zone', t: 'GitHub（雲端）' }, zl: { type: 'zone', t: '你的電腦' },
+    up: { type: 'repo', c: 'up', t: 'williamtsou/club-cards\n老師的 repo' },
+    fk: { type: 'repo', c: 'fork', t: 'amy/club-cards\n你的 fork' },
+    lo: { type: 'repo', t: 'club-cards' },
+    n1: { type: 'note' }, n2: { type: 'note' }, rt: { type: 'tag', c: 'plain' }
+  },
+  steps: [
+    { cmd: '', say: '<b>情境：大專案</b>（開源專案、我們今天的課）。參與的人很多，維護者不會把每個人加成協作者，所以老師的 repo <b>只有老師能改</b>，其他人只能看。',
+      set: { zc: { x: 400, y: 118, w: 770, h: 210 }, zl: { x: 400, y: 345, w: 440, h: 180 }, up: { x: 180, y: 130 } } },
+    { cmd: 'git clone https://github.com/williamtsou/club-cards.git', say: '<b>路線 A：只用 clone。</b>clone 會把整個 repo（所有檔案＋所有 commit 紀錄）下載到你的電腦，並自動把來源取名叫 <code>origin</code>。',
+      set: { rt: { x: 400, y: 30, t: '路線 A：單純 clone' }, lo: { x: 400, y: 360, t: 'club-cards\norigin → williamtsou' } },
+      ln: { cl: { a: [190, 165], b: [380, 330], o: 1, arrow: 1, lab: 'clone（下載）' } } },
+    { cmd: 'git push', say: '改完想推回去：<code>origin</code> 指的是老師的 repo，但你<b>沒有寫入權限</b>，GitHub 回你 <b>403</b>。看得到，但不能改。',
+      set: { n1: { x: 180, y: 195, t: '403：你沒有權限寫這個 repo', c: 'bad' } },
+      ln: { cl: { o: 0 }, pb: { a: [380, 330], b: [205, 165], o: 1, arrow: 1, c: 'bad', lab: 'push ✗' } } },
+    { cmd: '', say: '所以要走<b>路線 B：先 fork</b>。我們先把路線 A 清掉。',
+      set: { n1: { o: 0 }, lo: { o: 0 }, rt: { t: '路線 B：fork → clone' } },
+      ln: { pb: { o: 0 } } },
+    { cmd: '# 在 GitHub 網頁按 Fork', say: '<b>Fork 是在雲端複製</b>：GitHub 把老師的 repo 複製一份到<b>你的帳號</b>底下。這份是你的，你可以隨便改。注意，這時你的電腦裡<b>還沒有任何東西</b>。',
+      set: { fk: { x: 620, y: 130 } },
+      ln: { fo: { a: [300, 130], b: [500, 130], o: 1, arrow: 1, c: 'feat', lab: 'Fork（雲端複製）' } } },
+    { cmd: 'git clone https://github.com/amy/club-cards.git', say: '再 clone <b>你自己的 fork</b>。這次 <code>origin</code> 指向你的 fork，你有權限寫。',
+      set: { lo: { o: 1, x: 400, y: 360, t: 'club-cards\norigin → amy' } },
+      ln: { fo: { o: 0 }, c2: { a: [610, 165], b: [420, 330], o: 1, arrow: 1, c: 'feat', lab: 'clone' } } },
+    { cmd: 'git remote add upstream https://github.com/williamtsou/club-cards.git', say: '再幫老師的 repo 取個名字叫 <code>upstream</code>。之後別人合併的新東西，都從 upstream 拿。<code>git remote -v</code> 可以看到這兩個名字。',
+      set: { lo: { t: 'club-cards\norigin → amy\nupstream → williamtsou' } },
+      ln: { c2: { o: 0 }, us: { a: [380, 330], b: [205, 165], o: 1, c: 'main dash', lab: 'upstream（只拿不推）' } } },
+    { cmd: 'git push -u origin add-amy', say: '推到 <code>origin</code>，也就是<b>你的 fork</b>：成功 ✓。',
+      set: { n2: { x: 620, y: 195, t: 'push 成功 ✓', c: 'ok' } },
+      ln: { ps: { a: [420, 330], b: [600, 165], o: 1, arrow: 1, c: 'ok', lab: 'push' } } },
+    { cmd: '# 在 GitHub 網頁按 Compare & pull request', say: '最後用 <b>Pull Request</b> 請老師把你 fork 上的分支合併進老師的 repo。老師審核通過、按下合併，你的修改才會進到正式版。',
+      set: { n2: { o: 0 } },
+      ln: { pr: { a: [500, 112], b: [300, 112], o: 1, arrow: 1, c: 'feat', lab: 'Pull Request（申請合併）' } } },
+    { cmd: 'git pull upstream main\ngit push origin main', say: '之後的同步是一個<b>三角形</b>：從 upstream 拿最新的（pull）→ 你的電腦 → 推到你的 fork（push）。改東西則是電腦 → fork → PR → 老師。',
+      set: {},
+      ln: { pr: { o: 0 }, us: { c: 'main', arrow: 1, a: [205, 165], b: [380, 330], lab: 'pull upstream' }, ps: { lab: 'push origin' } } }
+  ],
+  points: [
+    '<b>clone</b>：雲端 → 你的電腦。下載整個 repo，來源自動叫 <code>origin</code>',
+    '<b>fork</b>：雲端 → 雲端。在 GitHub 上複製一份到你的帳號，跟你的電腦無關',
+    '沒有寫入權限時：先 fork，再 clone <b>自己的 fork</b>，push 才不會 403',
+    '<code>origin</code> = 你的 fork（可以推）；<code>upstream</code> = 老師的 repo（只拿不推）',
+    '你的修改進入老師的 repo，唯一的路是 Pull Request'
+  ]
+},
+{
+  id: 'token', nav: 'Token 與金鑰',
+  ref: '講義 3 Step 3、Step 9',
+  title: 'GitHub 怎麼知道是你：Token 與 SSH 金鑰',
+  lead: 'push 的時候，GitHub 要確認兩件事：你是誰、你能不能寫這個 repo。',
+  els: {
+    zl: { type: 'zone', t: '你的電腦' }, zg: { type: 'zone', t: 'GitHub' },
+    gate: { type: 'gate', t: '驗證門\n你是誰？能做什麼？' },
+    fk: { type: 'repo', c: 'fork', t: 'amy/club-cards' }, up: { type: 'repo', c: 'up', t: 'williamtsou/club-cards' },
+    pw: { type: 'card', t: '帳號＋密碼' },
+    tk: { type: 'card', c: 'key', t: 'Token（鑰匙卡）\n只能開：amy/club-cards\n權限：Contents 讀寫\n30 天後過期' },
+    vt: { type: 'card', t: '認證管理員（Windows）\n鑰匙圈（Mac）' },
+    pk: { type: 'card', c: 'key', t: '私鑰 id_ed25519\n鑰匙：永遠留在電腦' },
+    pb: { type: 'card', c: 'commit', t: '公鑰 id_ed25519.pub\n鎖頭：可以給別人' },
+    n1: { type: 'note' }, n2: { type: 'note' }, n3: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '左邊是你的電腦，右邊是 GitHub。push 時，你的電腦要穿過 GitHub 的<b>驗證門</b>，才能寫進 repo。',
+      set: { zl: { x: 170, y: 240, w: 300, h: 380 }, zg: { x: 620, y: 240, w: 320, h: 380 }, gate: { x: 520, y: 240 },
+             fk: { x: 680, y: 160 }, up: { x: 680, y: 320 }, pw: { x: 170, y: 160 } } },
+    { cmd: 'git push   # 用帳號密碼', say: '以前可以用帳號密碼，但 GitHub 從 <b>2021 年起不接受密碼</b> push。密碼一外洩，整個帳號都完了，而且密碼不能限制「只能做什麼」。',
+      set: { pw: { x: 400, y: 240 }, n1: { x: 520, y: 320, t: '✗ 不接受密碼', c: 'bad' } } },
+    { cmd: '# Settings → Developer settings → Fine-grained tokens', say: '改用 <b>Token</b>：一張你自己做的<b>鑰匙卡</b>。你決定它<b>能開哪扇門</b>（哪個 repo）、<b>能做什麼</b>（讀、寫）、<b>什麼時候失效</b>。',
+      set: { pw: { o: 0 }, n1: { o: 0 }, tk: { x: 170, y: 200 } } },
+    { cmd: 'git push -u origin add-amy', say: '第一次 push，把 Token 貼進登入視窗。驗證門逐項檢查：是這扇門嗎？有寫入權限嗎？過期了嗎？三個都通過，門才會開。',
+      set: { tk: { x: 330, y: 240 }, n1: { x: 520, y: 350, t: '✓ 是 amy/club-cards\n✓ 有寫入權限\n✓ 沒過期', c: 'ok' } },
+      ln: { g1: { a: [578, 225], b: [640, 178], o: 1, arrow: 1, c: 'ok' } } },
+    { cmd: 'git push upstream main   # 想推到老師的 repo', say: '同一張卡想開老師的門：<b>打不開</b>。這張卡只被允許開 amy/club-cards。這叫<b>最小權限原則</b>：就算卡被偷，損失也只有這扇門。',
+      set: { n1: { t: '✗ 這張卡不能開這扇門', c: 'bad' } },
+      ln: { g1: { o: 0 }, g2: { a: [578, 255], b: [640, 305], o: 1, arrow: 1, c: 'bad' } } },
+    { cmd: '# 之後的 push 不用再貼', say: '電腦會把 Token 收進<b>認證管理員／鑰匙圈</b>，之後 push 自動拿出來用，所以只要貼一次。',
+      set: { n1: { o: 0 }, tk: { x: 170, y: 200 }, vt: { x: 170, y: 330 } },
+      ln: { g2: { o: 0 } } },
+    { cmd: '# 不小心把 Token 傳到群組或 commit 進程式碼？', say: 'Token 等於密碼。外洩了就到 GitHub 把它<b>刪掉（Revoke）</b>，舊卡立刻失效，再重新做一張。所以：不要截圖、不要傳給別人、不要寫進檔案。',
+      set: { tk: { c: 'bad', t: 'Token（外洩了）\n→ 到 GitHub 刪掉\n→ 立刻失效' } } },
+    { cmd: 'ssh-keygen -t ed25519', say: '另一種方法是 <b>SSH 金鑰</b>，工程師很常用。指令會產生<b>一對</b>金鑰：<b>私鑰</b>像鑰匙，永遠留在你的電腦；<b>公鑰</b>像鎖頭，可以放心給別人。',
+      set: { tk: { o: 0 }, vt: { o: 0 }, gate: { o: 0 }, fk: { o: 0 }, up: { o: 0 }, pk: { x: 170, y: 190 }, pb: { x: 170, y: 300 } } },
+    { cmd: '# GitHub → Settings → SSH and GPG keys → 貼上公鑰', say: '把<b>公鑰（鎖頭）</b>交給 GitHub，記在你的帳號底下。私鑰（鑰匙）不交出去。',
+      set: { pb: { x: 620, y: 190, t: '你的公鑰（鎖頭）\n存在你的帳號' } } },
+    { cmd: 'git push   # 用 SSH 網址 git@github.com:...', say: '連線時，GitHub 出一道<b>隨機的題目</b>給你的電腦。',
+      set: { n2: { x: 620, y: 300, t: '① 隨機題目：83f1c9…' } },
+      ln: { q: { a: [560, 300], b: [260, 230], o: 1, arrow: 1, lab: '① 出題' } } },
+    { cmd: '', say: '你的電腦用<b>私鑰</b>在題目上簽名、把簽名傳回去。GitHub 用<b>公鑰</b>驗證：只有對應的私鑰才簽得出這個簽名，所以確定是你。<b>私鑰從頭到尾沒離開你的電腦</b>，網路上被偷看也拿不到。',
+      set: { n3: { x: 620, y: 380, t: '③ 用公鑰驗證 ✓ 是本人', c: 'ok' } },
+      ln: { q: { o: 0 }, s: { a: [260, 230], b: [560, 360], o: 1, arrow: 1, c: 'ok', lab: '② 用私鑰簽名' } } }
+  ],
+  points: [
+    'GitHub 不接受密碼 push，要用 Token 或 SSH 金鑰',
+    '<b>Token</b> = 你自己做的鑰匙卡：限定 repo、限定權限、會過期。HTTPS 網址用它',
+    '只給需要的權限（最小權限原則）：push 自己的 fork 只要 Contents 讀寫',
+    '<b>SSH</b> = 一對金鑰：私鑰（鑰匙）留在電腦，公鑰（鎖頭）交給 GitHub。<code>git@github.com:</code> 開頭的網址用它',
+    'Token 和私鑰都等於密碼：外洩就刪掉重做'
+  ]
+},
+{
+  id: 'branch', nav: '分支與 HEAD',
+  ref: '講義 1「HEAD」、講義 3 Step 6',
+  title: '分支與 HEAD：其實只是書籤',
+  lead: '分支不是複製一整份檔案，只是一張指向某筆 commit 的書籤；HEAD 是「你現在站在哪張書籤上」。',
+  els: {
+    c1: { type: 'node', t: 'C1' }, c2: { type: 'node', t: 'C2' }, c3: { type: 'node', t: 'C3' },
+    f1: { type: 'node', c: 'feat', t: 'F1' }, f2: { type: 'node', c: 'feat', t: 'F2' },
+    tm: { type: 'tag', t: 'main' }, tb: { type: 'tag', c: 'feat', t: 'add-amy' }, th: { type: 'tag', c: 'head', t: 'HEAD → main' },
+    nt: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '每個圓圈是一筆 commit。<code>main</code> 是一張<b>書籤</b>，夾在最新的那筆上。<b>HEAD</b> 是「你現在站的位置」，現在站在 main 上。',
+      set: { c1: { x: 110, y: 230 }, c2: { x: 240, y: 230 }, tm: { x: 240, y: 180 }, th: { x: 240, y: 140 } },
+      ln: { a: { a: [128, 230], b: [222, 230], o: 1, c: 'main' } } },
+    { cmd: 'git commit -m "..."', say: 'commit 一次，就多一個圓圈，而且<b>你站的那張書籤會自動往前移</b>。main 移到 C3，HEAD 跟著它。',
+      set: { c3: { x: 370, y: 230 }, tm: { x: 370 }, th: { x: 370 } },
+      ln: { b: { a: [258, 230], b: [352, 230], o: 1, c: 'main' } } },
+    { cmd: 'git switch -c add-amy', say: '開新分支 = <b>多夾一張書籤</b>，夾在同一筆 C3 上，所以一瞬間就完成，不會複製任何檔案。<code>-c</code> 是 create，建好之後 HEAD 就移到新書籤上。',
+      set: { tb: { x: 370, y: 280 }, th: { x: 370, y: 320, t: 'HEAD → add-amy' } } },
+    { cmd: 'git commit -m "feat: 新增 amy 的名片"', say: '在 add-amy 上 commit，<b>只有 add-amy 這張書籤往前</b>，main 留在原地。這就是為什麼分支上的修改不會影響正式版。',
+      set: { f1: { x: 500, y: 330 }, tb: { x: 500, y: 380 }, th: { x: 500, y: 418 } },
+      ln: { c: { a: [384, 242], b: [486, 318], o: 1, c: 'feat' } } },
+    { cmd: 'git commit -m "style: 調整頭像"', say: '再 commit 一次，add-amy 繼續往前。',
+      set: { f2: { x: 630, y: 330 }, tb: { x: 630 }, th: { x: 630 } },
+      ln: { d: { a: [518, 330], b: [612, 330], o: 1, c: 'feat' } } },
+    { cmd: 'git switch main', say: '切回 main：HEAD 跳回 main 那張書籤，VS Code 裡的檔案也會<b>變回 C3 的樣子</b>，你的名片好像不見了。別緊張，它好好地存在 add-amy 上。',
+      set: { th: { x: 370, y: 140, t: 'HEAD → main' }, nt: { x: 630, y: 230, t: '名片還在這條分支上', c: '' } } },
+    { cmd: 'git switch add-amy', say: '切回 add-amy，名片又回來了。<code>git branch</code> 會列出所有分支，前面有 <code>*</code> 的就是 HEAD 所在的分支。',
+      set: { th: { x: 630, y: 418, t: 'HEAD → add-amy' }, nt: { o: 0 } } }
+  ],
+  points: [
+    '分支 = 指向某筆 commit 的書籤，開分支幾乎不花時間',
+    'HEAD = 你現在站在哪張書籤上；commit 時，HEAD 所在的書籤會往前',
+    '<code>git switch</code> 換書籤，工作區的檔案會跟著變成那張書籤的版本',
+    'main 是正式版，所以改東西一定要在自己的分支上'
+  ]
+},
+{
+  id: 'oops', nav: '忘記開分支',
+  ref: '講義 3 Step 6、「卡住了？」',
+  title: '忘記開分支，直接在 main 上改了或 commit 了',
+  lead: '別慌：commit 不會不見，只是書籤夾錯地方。把書籤搬好就行。',
+  els: {
+    u1: { type: 'node', t: 'C1' }, u2: { type: 'node', t: 'C2' }, x1: { type: 'node', c: 'feat', t: 'X' },
+    tm: { type: 'tag', t: 'main' }, th: { type: 'tag', c: 'head', t: 'HEAD → main' },
+    tu: { type: 'tag', c: 'ghost', t: 'upstream/main' }, tb: { type: 'tag', c: 'feat', t: 'add-amy' },
+    fc: { type: 'card', c: 'mod', t: 'index.html\n已修改，還沒 commit' },
+    n1: { type: 'note' }, n2: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '你剛 clone 完，站在 main 上。main 和老師的 main（<code>upstream/main</code>）都在 C2。照規定，應該先開分支再改。',
+      set: { u1: { x: 130, y: 200 }, u2: { x: 260, y: 200 }, tm: { x: 260, y: 150 }, th: { x: 260, y: 110 }, tu: { x: 225, y: 250 } },
+      ln: { a: { a: [148, 200], b: [242, 200], o: 1, c: 'main' } } },
+    { cmd: 'git status   # 發現自己還在 main', say: '<b>情況 A：改了檔案，還沒 commit</b>。改到一半才發現自己還在 main。',
+      set: { fc: { x: 600, y: 200 }, n1: { x: 600, y: 140, t: '情況 A：還沒 commit', c: '' } } },
+    { cmd: 'git switch -c add-amy', say: '最簡單：<b>直接開分支</b>。還沒 commit 的修改會<b>跟著你</b>到新分支，main 完全沒被動到。接下來照常 add、commit 就好。',
+      set: { tb: { x: 260, y: 290 }, th: { y: 330, t: 'HEAD → add-amy' }, n2: { x: 600, y: 260, t: '✓ 修改跟著你到 add-amy', c: 'ok' } } },
+    { cmd: '', say: '<b>情況 B：已經在 main 上 commit 了</b>。我們倒回去，看這個比較麻煩的情況。',
+      set: { tb: { o: 0 }, th: { y: 110, t: 'HEAD → main' }, fc: { o: 0 }, n2: { o: 0 }, n1: { t: '情況 B：已經 commit 了' } } },
+    { cmd: 'git add .\ngit commit -m "feat: 新增 amy 的名片"   # 在 main 上！', say: 'commit 之後，X 接在 main 後面，<b>main 書籤跟著往前</b>。但老師的 main 還在 C2，你的 main 跟老師的不一樣了，之後同步會很麻煩。',
+      set: { x1: { x: 390, y: 200 }, tm: { x: 390 }, th: { x: 390 }, n2: { x: 600, y: 260, t: '✗ X 跑進 main 了', c: 'bad' } },
+      ln: { b: { a: [278, 200], b: [372, 200], o: 1, c: 'feat' } } },
+    { cmd: 'git switch -c add-amy', say: '<b>第 1 步：在現在的位置夾一張新書籤</b>。add-amy 夾在 X 上，HEAD 移過去。現在 X 有兩張書籤指著它。',
+      set: { tb: { o: 1, x: 390, y: 250 }, th: { y: 110, t: 'HEAD → add-amy' }, n2: { o: 0 } } },
+    { cmd: 'git fetch upstream\ngit branch -f --no-track main upstream/main', say: '<b>第 2 步：把 main 書籤搬回老師的 main</b>。<code>fetch</code> 先拿到老師 main 的最新位置；<code>branch -f</code>（force）強制把 main 書籤搬過去；<code>--no-track</code> 讓 main 不要從此跟著老師的 repo 推拉。X 不會不見，因為 add-amy 還指著它。',
+      set: { tm: { x: 260, y: 150 }, n2: { x: 600, y: 260, t: '✓ main 回到跟老師一樣', c: 'ok' } } },
+    { cmd: 'git log --oneline --graph --all', say: '把 X 畫在下面一排就看得出來：<b>跟一開始就正確開分支一模一樣</b>。之後照常 push add-amy、開 PR。',
+      set: { x1: { x: 390, y: 320 }, tb: { x: 390, y: 370 }, th: { x: 390, y: 410 }, n2: { o: 0 } },
+      ln: { b: { a: [272, 212], b: [378, 308] } } },
+    { cmd: '# 已經 git push origin main 了？\ngit push -f origin main', say: '如果你已經把錯的 main 推到<b>自己的 fork</b>，搬完書籤後用 <code>push -f</code>（強制）把 fork 的 main 也蓋回來。⚠️ <code>-f</code> 會蓋掉遠端的紀錄，<b>只能對自己的 fork 用</b>，永遠不要對老師或別人的 repo 用。',
+      set: { n1: { x: 600, y: 200, t: 'push -f 只能用在自己的 fork', c: 'bad' } } }
+  ],
+  points: [
+    '還沒 commit：直接 <code>git switch -c 新分支</code>，修改會跟著你',
+    '已經 commit 在 main：先 <code>git switch -c 新分支</code>，再 <code>git fetch upstream</code> + <code>git branch -f --no-track main upstream/main</code>',
+    'commit 不會因為搬書籤而不見，只要還有書籤（分支）指著它',
+    '已經推到自己 fork 的 main：<code>git push -f origin main</code>，只能對自己的 fork 用',
+    '預防：改東西前先 <code>git status</code>，確認第一行不是 On branch main'
+  ]
+},
+{
+  id: 'sync', nav: 'push、fetch、pull',
+  ref: '講義 3 Step 9、Step 12、講義 5',
+  title: 'push、fetch、pull：電腦和 GitHub 怎麼同步',
+  lead: 'commit 只存在你的電腦。要上傳用 push，要下載用 fetch 或 pull。',
+  els: {
+    zc: { type: 'zone', t: 'GitHub 上的 repo' }, zl: { type: 'zone', t: '你的電腦' },
+    u1: { type: 'node', t: 'C1' }, u2: { type: 'node', t: 'C2' }, u3: { type: 'node', t: 'C3' }, u4: { type: 'node', t: 'C4' },
+    l1: { type: 'node', t: 'C1' }, l2: { type: 'node', t: 'C2' }, l3: { type: 'node', t: 'C3' }, l4: { type: 'node', t: 'C4' },
+    lm: { type: 'tag', t: 'main' }, lr: { type: 'tag', c: 'ghost', t: 'origin/main' }, n1: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '一開始，GitHub 和你的電腦都有 C1、C2，兩邊一樣。',
+      set: { zc: { x: 400, y: 115, w: 760, h: 180 }, zl: { x: 400, y: 330, w: 760, h: 200 },
+             u1: { x: 130, y: 125 }, u2: { x: 260, y: 125 }, l1: { x: 130, y: 330 }, l2: { x: 260, y: 330 }, lm: { x: 260, y: 382 } },
+      ln: { u12: { a: [148, 125], b: [242, 125], o: 1, c: 'main' }, l12: { a: [148, 330], b: [242, 330], o: 1, c: 'main' } } },
+    { cmd: 'git commit -m "..."', say: 'commit 之後，C3 <b>只存在你的電腦</b>。GitHub 完全不知道，別人也看不到。',
+      set: { l3: { x: 390, y: 330 }, lm: { x: 390 } },
+      ln: { l23: { a: [278, 330], b: [372, 330], o: 1, c: 'main' } } },
+    { cmd: 'git push', say: '<b>push = 上傳</b>：把 GitHub 沒有的 commit（C3）推上去。現在兩邊又一樣了。',
+      set: { u3: { x: 390, y: 125 } },
+      ln: { u23: { a: [278, 125], b: [372, 125], o: 1, c: 'main' }, pu: { a: [390, 300], b: [390, 158], o: 1, arrow: 1, c: 'ok', lab: 'push' } } },
+    { cmd: '# 別人合併了新東西', say: '別人的 PR 被合併，GitHub 上多了 C4。<b>你的電腦不會自動知道</b>，要自己去拿。',
+      set: { u4: { x: 520, y: 125 } },
+      ln: { pu: { o: 0 }, u34: { a: [408, 125], b: [502, 125], o: 1, c: 'main' } } },
+    { cmd: 'git fetch', say: '<b>fetch = 只下載、不動你的檔案</b>。C4 下載到電腦裡，但只夾上一張叫 <code>origin/main</code> 的虛線書籤；你的 main 還停在 C3，工作區也沒變。',
+      set: { l4: { x: 520, y: 330, c: 'ghost' }, lr: { x: 520, y: 382 } },
+      ln: { l34: { a: [408, 330], b: [502, 330], o: 1, c: 'dash' }, fe: { a: [520, 158], b: [520, 300], o: 1, arrow: 1, lab: 'fetch' } } },
+    { cmd: 'git merge origin/main', say: '<b>merge</b> 把 C4 合併進你的 main：main 往前移到 C4，工作區的檔案也更新了。',
+      set: { l4: { c: '' }, lm: { x: 520, y: 382 }, lr: { y: 418 } },
+      ln: { fe: { o: 0 }, l34: { c: 'main' } } },
+    { cmd: 'git pull upstream main', say: '<b>pull = fetch + merge</b>，一個指令做完上面兩步。我們的流程裡常用 <code>git pull upstream main</code>：從老師的 repo 拿最新的 main，合併進你現在的分支。',
+      set: { n1: { x: 660, y: 330, t: 'pull = fetch + merge' } } }
+  ],
+  points: [
+    'commit 只存在你的電腦，push 之後 GitHub 才有',
+    '<b>push</b> = 上傳你有、GitHub 沒有的 commit',
+    '<b>fetch</b> = 下載但不改你的檔案；<b>pull</b> = fetch + merge',
+    '開始做事前先 <code>git pull upstream main</code>，從最新版開始'
+  ]
+},
+{
+  id: 'squash', nav: 'PR 與 Squash',
+  ref: '講義 3 Step 10～12',
+  title: 'PR、Squash 合併，以及為什麼要用 -D 刪分支',
+  lead: 'Squash 會把你分支上的多筆 commit 壓成一筆新的放進 main。',
+  els: {
+    zc: { type: 'zone', t: '老師的 repo（main）' }, zl: { type: 'zone', t: '你的分支 add-amy' },
+    m1: { type: 'node', t: 'M1' }, m2: { type: 'node', t: 'M2' }, s: { type: 'node', c: 'squash', t: 'S' },
+    f1: { type: 'node', c: 'feat', t: 'F1' }, f2: { type: 'node', c: 'feat', t: 'F2' }, f3: { type: 'node', c: 'feat', t: 'F3' },
+    tb: { type: 'tag', c: 'feat', t: 'add-amy' }, pr: { type: 'card', c: 'key', t: 'PR #3\nadd-amy → main' },
+    n1: { type: 'note' }, n2: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '你從 M2 開了分支 add-amy，做了 F1、F2 兩筆 commit，然後開 PR #3，申請合併進老師的 main。',
+      set: { zc: { x: 400, y: 115, w: 760, h: 180 }, zl: { x: 400, y: 330, w: 760, h: 200 },
+             m1: { x: 120, y: 125 }, m2: { x: 250, y: 125 }, f1: { x: 380, y: 330 }, f2: { x: 500, y: 330 }, tb: { x: 500, y: 380 }, pr: { x: 660, y: 125 } },
+      ln: { a: { a: [138, 125], b: [232, 125], o: 1, c: 'main' }, b: { a: [262, 142], b: [366, 316], o: 1, c: 'feat' }, c: { a: [398, 330], b: [482, 330], o: 1, c: 'feat' } } },
+    { cmd: '# 老師留言：頭像改小一點\ngit commit -m "fix: 頭像改小"\ngit push', say: '收到審核意見，<b>在同一個分支</b>上改完再 push，多一筆 F3，PR 會<b>自動更新</b>，不用重開。',
+      set: { f3: { x: 620, y: 330 }, tb: { x: 620 }, n1: { x: 660, y: 205, t: '審核：頭像改小一點' } },
+      ln: { d: { a: [518, 330], b: [602, 330], o: 1, c: 'feat' } } },
+    { cmd: '# 老師按 Approve → Squash and merge', say: '<b>Squash and merge</b>：GitHub 把 F1、F2、F3 的修改<b>壓成一筆新的 commit S</b>，放到 main 上。main 的紀錄很乾淨：一個 PR 就是一筆。',
+      set: { n1: { o: 0 }, s: { x: 380, y: 125 }, pr: { t: 'PR #3\nMerged ✓' } },
+      ln: { e: { a: [268, 125], b: [362, 125], o: 1, c: 'main' }, sq: { a: [500, 300], b: [400, 150], o: 1, arrow: 1, c: 'ok dash', lab: '壓成一筆' } } },
+    { cmd: 'git branch -d add-amy', say: 'S 和 F1～F3 的<b>內容一樣，但編號不同</b>。Git 只認編號，在 main 上找不到 F3，就以為你的分支還沒合併，所以小寫 <code>-d</code> 會拒絕：<code>not fully merged</code>。',
+      set: { n2: { x: 400, y: 425, t: '✗ not fully merged：Git 在 main 上找不到 F3', c: 'bad' } },
+      ln: { sq: { o: 0 } } },
+    { cmd: 'git branch -D add-amy', say: '確認 PR 已經 Merged，就用大寫 <code>-D</code> 強制刪除。內容已經在 S 裡了，什麼都不會少。',
+      set: { n2: { t: '✓ 分支刪掉了，內容在 S 裡', c: 'ok' }, f1: { o: 0 }, f2: { o: 0 }, f3: { o: 0 }, tb: { o: 0 } },
+      ln: { b: { o: 0 }, c: { o: 0 }, d: { o: 0 } } }
+  ],
+  points: [
+    'PR 開了之後，在同一個分支繼續 push，PR 會自動更新',
+    'Squash = 把分支上的多筆 commit 壓成一筆新的放進 main',
+    '新的那筆編號不同，所以 <code>git branch -d</code> 常常拒絕刪；確認 Merged 後用 <code>-D</code>',
+    '一個任務 = 一個 Issue = 一個分支 = 一個 PR，合併後就刪掉分支'
+  ]
+},
+{
+  id: 'conflict', nav: '衝突原理',
+  ref: '講義 4',
+  title: '衝突從哪裡來：Git 的「三方比對」',
+  lead: '合併時，Git 拿兩邊各自跟「分岔前的共同祖先」比。改到不同地方就自動合併，改到同一個地方才會衝突。',
+  els: {
+    hb: { type: 'colhead', t: '共同祖先\n（分岔前）' }, ho: { type: 'colhead', t: '你的分支\n（HEAD）' }, ht: { type: 'colhead', t: '別人的分支\n（先合併了）' }, hr: { type: 'colhead', t: '合併結果' },
+    b1: { type: 'code', t: '<li>amy</li>' }, b2: { type: 'code', t: '<li>kim</li>' },
+    o1: { type: 'code', t: '<li>amy</li>' }, o2: { type: 'code', c: 'add', t: '<li>dan</li>' }, o3: { type: 'code', t: '<li>kim</li>' },
+    t1: { type: 'code', t: '<li>amy</li>' }, t2: { type: 'code', t: '<li>kim</li>' }, t3: { type: 'code', c: 'add', t: '<li>zed</li>' },
+    r1: { type: 'code' }, r2: { type: 'code' }, r3: { type: 'code' }, r4: { type: 'code' }, r5: { type: 'code' }, r6: { type: 'code' }, r7: { type: 'code' },
+    n1: { type: 'note' }
+  },
+  steps: [
+    { cmd: '', say: '先看分岔前的版本：清單裡有 amy 和 kim。這就是兩條分支的<b>共同祖先</b>。',
+      set: { hb: { x: 115, y: 50 }, b1: { x: 115, y: 110, w: 150 }, b2: { x: 115, y: 150, w: 150 } } },
+    { cmd: '', say: '<b>情況 A</b>：你在 amy 後面加了 dan；別人在最後面加了 zed。兩個人改的是<b>不同的地方</b>。',
+      set: { ho: { x: 295, y: 50 }, ht: { x: 475, y: 50 },
+             o1: { x: 295, y: 110, w: 150 }, o2: { x: 295, y: 150, w: 150 }, o3: { x: 295, y: 190, w: 150 },
+             t1: { x: 475, y: 110, w: 150 }, t2: { x: 475, y: 150, w: 150 }, t3: { x: 475, y: 190, w: 150 } } },
+    { cmd: 'git merge   # 或 git pull upstream main', say: 'Git 拿兩邊各自跟祖先比：你在 amy 後面<b>多了 dan</b>，別人在最後<b>多了 zed</b>，位置不同、互不干擾，所以<b>自動合併</b>，兩個都套用。',
+      set: { hr: { x: 670, y: 50 },
+             r1: { x: 670, y: 110, w: 190, t: '<li>amy</li>', c: '' }, r2: { x: 670, y: 150, w: 190, t: '<li>dan</li>', c: 'add' },
+             r3: { x: 670, y: 190, w: 190, t: '<li>kim</li>', c: '' }, r4: { x: 670, y: 230, w: 190, t: '<li>zed</li>', c: 'add' },
+             n1: { x: 670, y: 300, t: '✓ 改到不同地方 → 自動合併', c: 'ok' } } },
+    { cmd: '', say: '<b>情況 B</b>：這次別人在 amy 和 kim 中間加了 cat。你們兩個都在<b>同一個位置</b>加了東西。',
+      set: { r1: { o: 0 }, r2: { o: 0 }, r3: { o: 0 }, r4: { o: 0 }, n1: { o: 0 }, hr: { o: 0 },
+             t2: { t: '<li>cat</li>', c: 'add' }, t3: { t: '<li>kim</li>', c: '' } } },
+    { cmd: 'git merge   # CONFLICT (content): Merge conflict in index.html', say: 'Git 不知道 dan 和 cat 誰該在前面、還是只留一個，<b>它不敢猜</b>，就把兩個版本都寫進檔案，用三種標記圍起來，請你決定。',
+      set: { hr: { o: 1 },
+             r1: { o: 1, y: 110, t: '<li>amy</li>', c: '' },
+             r2: { o: 1, y: 150, t: '<<<<<<< HEAD', c: 'mark' },
+             r3: { o: 1, y: 190, t: '<li>dan</li>', c: 'ours' },
+             r4: { o: 1, y: 230, t: '=======', c: 'mark' },
+             r5: { x: 670, y: 270, w: 190, t: '<li>cat</li>', c: 'theirs' },
+             r6: { x: 670, y: 310, w: 190, t: '>>>>>>> upstream/main', c: 'mark' },
+             r7: { x: 670, y: 350, w: 190, t: '<li>kim</li>', c: '' },
+             n1: { o: 1, x: 400, y: 415, t: '✗ CONFLICT：同一個位置兩邊都改了', c: 'bad' } } },
+    { cmd: '', say: '怎麼讀：<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> 到 <code>=======</code> 是<b>你這邊</b>（HEAD）；<code>=======</code> 到 <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> 是<b>別人的</b>，後面寫著它來自哪個分支。VS Code 會給你 Accept Current（你的）、Incoming（別人的）、Both（都留）三個按鈕。',
+      set: { n1: { t: '上半＝你的（HEAD）　下半＝別人的', c: '' } } },
+    { cmd: '# 兩個都留、照字母排，刪掉三種標記\ngit add index.html\ngit commit', say: '這個例子兩個都要留：照字母排成 amy、cat、dan、kim，<b>刪掉三種標記</b>，再 <code>git add</code>（告訴 Git「解好了」）和 <code>git commit</code>（完成合併）。',
+      set: { r2: { o: 0 }, r4: { o: 0 }, r6: { o: 0 },
+             r5: { y: 150, c: 'add' }, r3: { y: 190, c: 'add' }, r7: { y: 230 },
+             n1: { t: '✓ 解決：兩個都留、刪掉標記', c: 'ok' } } },
+    { cmd: 'git merge --abort', say: '解到一半亂掉了？<code>git merge --abort</code> 會<b>回到合併之前</b>，就像沒發生過，可以重來。衝突不是壞掉，只是 Git 在問你。',
+      set: { n1: { t: '亂掉了就 git merge --abort 重來', c: '' } } }
+  ],
+  points: [
+    'Git 合併時做「三方比對」：你的、別人的，各自跟共同祖先比',
+    '改到不同地方 → 自動合併；改到同一個地方 → 衝突',
+    '<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> 那段是你的，<code>=======</code> 下面是別人的',
+    '解法：決定要留什麼 → 刪掉三種標記 → <code>git add</code> → <code>git commit</code>',
+    '三種常見情況：都是新增（都留）、同一行不同意思（去問對方）、別人改了規則（照新版改）'
+  ]
+}
+];
+
+/* ---------- 播放器 ---------- */
+const stage = document.getElementById('stage');
+const linesG = document.getElementById('lines');
+const $ = id => document.getElementById(id);
+let ch = null, step = 0, timer = null, nodes = {}, lnodes = {};
+
+function cum(chap, i) {
+  const s = {}, l = {};
+  for (let k = 0; k <= i; k++) {
+    const st = chap.steps[k];
+    for (const id in (st.set || {})) s[id] = Object.assign({}, s[id], st.set[id]);
+    for (const id in (st.ln || {})) l[id] = Object.assign({}, l[id], st.ln[id]);
+  }
+  return { s, l };
+}
+function firstPos(chap, id, key) {
+  for (const st of chap.steps) {
+    const v = (st[key] || {})[id];
+    if (v && (v.x != null || v.a)) return v;
+  }
+  return {};
+}
+const pctX = v => (v / 800 * 100) + '%';
+const pctY = v => (v / 450 * 100) + '%';
+
+function build(chap) {
+  stage.querySelectorAll('.el').forEach(n => n.remove());
+  linesG.innerHTML = '';
+  nodes = {}; lnodes = {};
+  for (const id in chap.els) {
+    const d = chap.els[id];
+    const n = document.createElement('div');
+    n.className = 'el ' + d.type;
+    n.style.transition = 'none';
+    const p = firstPos(chap, id, 'set');
+    n.style.left = pctX(p.x ?? 400); n.style.top = pctY(p.y ?? 225); n.style.opacity = 0;
+    if (d.type === 'zone') n.style.zIndex = 0; else n.style.zIndex = 2;
+    stage.appendChild(n); nodes[id] = n;
+  }
+  const ids = new Set();
+  chap.steps.forEach(st => Object.keys(st.ln || {}).forEach(k => ids.add(k)));
+  ids.forEach(id => {
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('class', 'lbl'); text.setAttribute('text-anchor', 'middle');
+    g.appendChild(line); g.appendChild(text); g.style.opacity = 0;
+    linesG.appendChild(g); lnodes[id] = { g, line, text };
+  });
+  requestAnimationFrame(() => Object.values(nodes).forEach(n => n.style.transition = ''));
+}
+
+function render() {
+  const chap = ch, { s, l } = cum(chap, step);
+  for (const id in chap.els) {
+    const d = chap.els[id], n = nodes[id], st = s[id];
+    if (!st) { n.style.opacity = 0; continue; }
+    n.className = 'el ' + d.type + ' ' + (st.c ?? d.c ?? '');
+    if (st.x != null) n.style.left = pctX(st.x);
+    if (st.y != null) n.style.top = pctY(st.y);
+    if (st.w != null) n.style.width = pctX(st.w);
+    if (st.h != null) n.style.height = pctY(st.h);
+    n.textContent = st.t ?? d.t ?? '';
+    n.style.opacity = st.o ?? 1;
+  }
+  for (const id in lnodes) {
+    const L = lnodes[id], st = l[id];
+    if (!st) { L.g.style.opacity = 0; continue; }
+    const [x1, y1] = st.a, [x2, y2] = st.b;
+    L.line.setAttribute('x1', x1); L.line.setAttribute('y1', y1); L.line.setAttribute('x2', x2); L.line.setAttribute('y2', y2);
+    const cls = st.c || '';
+    L.line.setAttribute('class', 'ln ' + cls);
+    const color = ['ok', 'bad', 'main', 'feat'].find(c => cls.split(' ').includes(c));
+    if (st.arrow) L.line.setAttribute('marker-end', 'url(#ar' + (color ? '-' + color : '') + ')'); else L.line.removeAttribute('marker-end');
+    L.text.textContent = st.lab || '';
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2;
+    const horiz = Math.abs(y2 - y1) < 20;
+    L.text.setAttribute('x', horiz ? mx : mx + 10); L.text.setAttribute('y', horiz ? my - 9 : my);
+    L.text.setAttribute('text-anchor', horiz ? 'middle' : 'start');
+    L.g.style.opacity = st.o ?? 1;
+  }
+  const cur = chap.steps[step];
+  $('cmd').textContent = cur.cmd;
+  $('say').innerHTML = cur.say;
+  $('counter').textContent = (step + 1) + ' / ' + chap.steps.length;
+  $('prev').disabled = step === 0;
+  $('next').disabled = step === chap.steps.length - 1;
+  [...$('dots').children].forEach((b, i) => b.setAttribute('aria-current', i === step));
+}
+
+function openChapter(id, keepHash) {
+  stop();
+  ch = CH.find(c => c.id === id) || CH[0];
+  step = 0;
+  $('ch-title').textContent = ch.title;
+  $('ch-lead').textContent = ch.lead;
+  $('ch-ref').textContent = '對應講義：' + ch.ref;
+  $('points').innerHTML = ch.points.map(p => '<li>' + p + '</li>').join('');
+  [...$('chapters').children].forEach(b => b.setAttribute('aria-current', b.dataset.id === ch.id));
+  $('dots').innerHTML = '';
+  ch.steps.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('aria-label', '第 ' + (i + 1) + ' 步');
+    b.onclick = () => { stop(); step = i; render(); };
+    $('dots').appendChild(b);
+  });
+  build(ch);
+  requestAnimationFrame(() => requestAnimationFrame(render));
+  if (!keepHash) { try { history.replaceState(null, '', '#' + ch.id); } catch (e) { location.hash = ch.id; } }
+}
+
+function go(d) { const n = step + d; if (n < 0 || n >= ch.steps.length) return false; step = n; render(); return true; }
+function stop() { clearInterval(timer); timer = null; $('play').textContent = '▶ 自動播放'; }
+function play() {
+  if (timer) return stop();
+  if (step === ch.steps.length - 1) { step = 0; render(); }
+  $('play').textContent = '⏸ 暫停';
+  timer = setInterval(() => { if (!go(1)) stop(); }, 4200);
+}
+
+CH.forEach(c => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = (CH.indexOf(c) + 1) + ' ' + c.nav; b.dataset.id = c.id;
+  b.onclick = () => openChapter(c.id);
+  $('chapters').appendChild(b);
+});
+$('prev').onclick = () => { stop(); go(-1); };
+$('next').onclick = () => { stop(); go(1); };
+$('play').onclick = play;
+document.addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('input, textarea')) return;
+  if (e.key === 'ArrowRight') { stop(); go(1); }
+  if (e.key === 'ArrowLeft') { stop(); go(-1); }
+});
+new ResizeObserver(() => { stage.style.fontSize = (stage.clientWidth / 800 * 15) + 'px'; }).observe(stage);
+window.addEventListener('hashchange', () => { const id = location.hash.slice(1); if (!ch || id !== ch.id) openChapter(id, true); });
+openChapter(location.hash.slice(1), true);
+</script>
+</body>
+</html>

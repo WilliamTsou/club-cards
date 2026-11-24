@@ -3,7 +3,7 @@
 > 今天的目標：**把你的名片放上 [名片牆](https://williamtsou.github.io/club-cards/)**。
 > 過程中你會學到終端機、Git，還有業界工程師每天在用的開發流程。
 
-**怎麼求救**：上課會發綠色和紅色兩種便利貼。做完一段，把**綠色**貼在螢幕上緣；卡住了就換貼**紅色**，老師或助教看到紅色就會過來（沒拿到便利貼的話，直接舉手也可以）。
+**怎麼求救**：可以問問AI或是舉手詢問，或是私訊教學幹部。
 指令和快捷鍵不用背，忘了就查 [速查表](cheatsheet.md)。
 
 文中的 `你的帳號` 都要換成**你的 GitHub 帳號**（`github.com/` 後面那串）。
@@ -569,13 +569,14 @@ git fetch origin --prune                     # 清掉舊紀錄
 1. 先打 `git status`，它通常會告訴你下一步
 2. 打 `pwd`，確認你在對的資料夾
 3. 查 [速查表的「常見錯誤」](cheatsheet.md#常見錯誤)
-4. 換貼紅色便利貼，或直接舉手
+4. 舉手或是私訊給教學幹部
 
 | 最常見的狀況 | 解法 |
 | --- | --- |
 | push 出現 403 / Permission denied | ① clone 到老師的 repo 了，要 clone **你自己的 fork**；② Token 沒選到你的 fork，或 Contents 不是 Read and write |
 | push 出現 `Authentication failed` | 密碼欄打成 GitHub 密碼了，要貼 **Token**；Token 過期就重新產生一張 |
-| 不小心在 main 上 commit | `git switch -c add-你的帳號`，commit 會跟著到新分支 |
+| 忘記開分支，在 main 上改了（還沒 commit） | 直接 `git switch -c add-你的帳號`，修改會跟著你到新分支 |
+| 忘記開分支，已經在 main 上 commit 了 | ① `git switch -c add-你的帳號` ② `git fetch upstream` ③ `git branch -f --no-track main upstream/main`（看[動畫](https://williamtsou.github.io/club-cards/docs/git-visual.html#oops)） |
 | `git branch -d` 說 not fully merged | 分支是 Squash 合併的，確認 PR 已經 Merged 後改用 `-D` |
 | 跳進一個奇怪的畫面出不來 | 按 `Esc`，打 `:q!` 再按 Enter；或按 `q` |
 | 網頁上出現 `<<<<<<<` | 解衝突忘了刪標記，刪掉再 commit 一次 |
