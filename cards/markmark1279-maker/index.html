@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>朱裕銘的名片</title>
+    <style>
+      :root {
+  --bg: #E5F3E9;
+  --surface: #F8FCF9;
+  --text: #183B2B;
+  --text-soft: #50695B;
+  --accent: #08734C;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  margin: 0;
+}
+
+.card {
+  min-height: 100vh;
+  display: flex;
+ 
+.card__profile {
+  flex-basis: 33.33%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(to bottom, var(--surface), var(--bg));
+}  
+
+.card__content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-left: 1px solid var(--accent);
+  background-color: var(--surface);
+  padding-inline: 24px;
+}
+.card__content li {
+  font-size: 16px;
+  font-weight: 400;
+}
+.card__avatar {
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  box-shadow: 0 0 16px rgb(8 115 76 / 30%);
+}
+
+.card__name {
+  color: var(--accent);
+  font-size: 36px;
+  font-weight: 700;
+}
+
+.card__nickname {
+  color: var(--text-soft);
+  font-size: 20px;
+  font-weight: 500;
+}
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+    </style>
+  </head>
+  <body>
+    <main>
+      <article class="card">
+
+        <header class="card__profile">
+          <img src="Archer.jpg.jpg" class="card__avatar" alt="朱裕銘的頭像">
+          <h1 class="card__name">朱裕銘</h1>
+          <p class="card__nickname">小朱</p>
+        </header>
+
+        <section class="card__content">
+          <h2>一個很忙的大一生</h2>
+          <ol>
+            <li>喜歡喝酒</li>
+            <li>喜歡打遊戲</li>
+            <li>對程式很有興趣就進來懶人包了</li>
+          </ol>
+        </section>
+
+      </article>
+    </main>
+  </body>
+</html>
