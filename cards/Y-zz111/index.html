@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>羅苡榛的名片</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&display=swap">
+    <style>
+      :root {
+        --bg: #fefae0;
+        --surface: #f0ca9e;
+        --text: #283618;
+        --text-soft: #606C38;
+        --accent: #bc6c25;
+      }
+
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        margin: 0;
+        font-family: "Noto Serif TC", serif; /* 套用剛剛引入的新字型 */
+      }
+
+      .card {
+      min-height: 100vh; /* 至少跟整個螢幕視窗一樣高 */
+      display: flex;     /* 讓裡面的左欄、右欄變成左右並排 */
+      }
+
+      .card__profile {
+      flex: 0 0 33.33%;         /* 固定佔據整頁寬度的三分之一 */
+      display: flex;            /* 開啟彈性排版 */
+      flex-direction: column;   /* 讓頭像、名字、暱稱由上往下垂直排列 */
+      align-items: center;      /* 水平置中 */
+      justify-content: center;  /* 垂直置中 */
+      padding: 2rem;            /* 四周留一點呼吸空間 */
+      border-right: 1px solid rgba(128, 128, 128, 0.25); /* 左右兩欄之間的分隔線 */
+      }
+
+      .card__avatar {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%; /* 圓角設 50% 就會變成正圓形 */
+      object-fit: cover;  /* 讓照片自動裁切填滿圓框，不會被壓扁或拉長 */
+      margin-bottom: 1rem;
+      }
+
+      .card__name {
+      font-size: 2rem;          /* 名字最大最顯眼 */
+      font-weight: 700;         /* 粗體 */
+      color: var(--accent);     /* 套用重點色 */
+      margin: 0.5rem 0 0.25rem;
+      }
+
+      .card__nickname {
+      font-size: 1.1rem;        /* 暱稱大小次之 */
+      color: var(--text-soft);  /* 套用次要文字色 */
+      margin: 0;
+      }
+
+      .card__content {
+      flex: 1;                  /* 吃掉左欄以外剩下的所有寬度（約三分之二） */
+      background-color: var(--surface); /* 套用區塊底色，和左欄拉出層次 */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;  /* 內容垂直置中 */
+      padding: 2rem 4rem;       /* 上下留白 2rem、左右內距 4rem，避免文字貼邊 */
+      }
+
+      .card__content h2 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      }
+
+      .card__content ol {
+      font-size: 1.05rem;       /* 清單文字大小適中好讀 */
+      line-height: 1.8;         /* 拉開行距，閱讀比較不擁擠 */
+      }
+
+      /* 1. 定義淡入並微微上浮的動畫劇本 */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;                  /* 一開始完全透明 */
+          transform: translateY(16px); /* 位置稍微往下偏 16px */
+        }
+        to {
+          opacity: 1;                  /* 最後完全顯示 */
+          transform: translateY(0);    /* 回到原本位置 */
+        }
+      }
+
+      /* 2. 把動畫套用到左欄與右欄，花 0.8 秒平滑播放 */
+      .card__profile,
+      .card__content {
+        animation: fadeIn 0.8s ease-out;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <article class="card">
+
+        <header class="card__profile">
+          <img src="me.jpg" alt="我的頭像" class="card__avatar">
+          <h1 class="card__name">羅苡榛</h1>
+          <p class="card__nickname">瓜瓜</p>
+        </header>
+
+        <section class="card__content">
+          <h2> 資工系 </h2>
+          <ol>
+            <li>大一</li>
+            <li>新竹人</li>
+            <li>平常喜歡走走逛逛、吃美食</li>
+          </ol>
+        </section>
+
+      </article>
+    </main>
+  </body>
+</html>
