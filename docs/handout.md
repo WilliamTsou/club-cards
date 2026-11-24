@@ -3,7 +3,7 @@
 > 今天的目標：**把你的名片放上 [名片牆](https://williamtsou.github.io/club-cards/)**。
 > 過程中你會學到終端機、Git，還有業界工程師每天在用的開發流程。
 
-做完一段，在電腦上貼 🟩 便利貼；卡住了就貼 🟥，助教會過來。
+**怎麼求救**：上課會發綠色和紅色兩種便利貼。做完一段，把**綠色**貼在螢幕上緣；卡住了就換貼**紅色**，老師或助教看到紅色就會過來（沒拿到便利貼的話，直接舉手也可以）。
 指令和快捷鍵不用背，忘了就查 [速查表](cheatsheet.md)。
 
 文中的 `你的帳號` 都要換成**你的 GitHub 帳號**（`github.com/` 後面那串）。
@@ -13,12 +13,40 @@
 
 ## 0. 課前準備（在家做好）
 
-- [ ] 註冊 GitHub 帳號，**完成 email 驗證**
-- [ ] 安裝 Git
-  - Windows：到 https://git-scm.com 下載，一路按 Next（會一起裝好 Git Bash）
-  - Mac：打開「終端機」，輸入 `git --version`，跳出視窗就按安裝
-- [ ] 安裝 VS Code，並在延伸模組裝好 **Live Server**
-- [ ] Windows：VS Code 按 `Ctrl+Shift+P` → 輸入 `Terminal: Select Default Profile` → 選 **Git Bash**
+### 0-1 註冊 GitHub
+
+- [ ] 到 https://github.com 註冊帳號，**完成 email 驗證**（沒驗證不能 Fork）
+
+### 0-2 安裝 Git（Windows 會一起裝好 Git Bash）
+
+**Windows**
+
+1. 到 https://git-scm.com/downloads/win 下載 **Git for Windows**（64-bit Setup）
+2. 安裝時大部分選項按 **Next** 用預設值就好，只有一個建議改：
+   - 「Choosing the default editor」那一頁，選 **Use Visual Studio Code as Git's default editor**（還沒裝 VS Code 的話先裝 VS Code 再回來裝 Git）
+3. 裝完在開始選單搜尋 **Git Bash**，打開輸入 `git --version`，有出現版本號就成功了
+
+**Mac**
+
+1. 打開「終端機」（Launchpad 搜尋 Terminal）
+2. 輸入 `git --version`，如果跳出視窗要你安裝「命令列開發者工具」，按 **安裝**
+3. 裝完再輸入一次 `git --version`，有出現版本號就成功了
+
+> **為什麼 Windows 要用 Git Bash？**
+> 今天用到的 `bash xxx.sh`、`cp -r`、`curl -O`、`touch` 都是 bash 的指令。
+> Windows 內建的 PowerShell 不認得它們（在 PowerShell 打 `bash` 還會叫到別的程式），所以 Windows 一律用 **Git Bash**。
+> Mac 的「終端機」本來就能用這些指令，不用另外裝。
+
+### 0-3 安裝 VS Code
+
+1. 到 https://code.visualstudio.com 下載安裝
+2. Windows 安裝時，**勾選「加入 PATH」和「將『以 Code 開啟』加入右鍵選單」**（終端機打 `code .` 才會有用）
+3. 打開 VS Code，左邊「延伸模組」（四個方塊的圖示）搜尋並安裝 **Live Server**
+4. **Windows**：按 `Ctrl+Shift+P` → 輸入 `Terminal: Select Default Profile` → 選 **Git Bash**，之後 VS Code 裡的終端機就會是 Git Bash
+5. **Mac**：按 `Cmd+Shift+P` → 輸入 `Shell Command: Install 'code' command in PATH` → 按 Enter，終端機打 `code .` 才會有用
+
+### 0-4 準備名片
+
 - [ ] 準備好 w10 的名片（`index.html` + 頭像，頭像 500KB 以下、檔名用英文）
   - 沒做完也沒關係，今天可以用範本
 
@@ -75,6 +103,18 @@ git config --global core.editor "code --wait"      # 需要打訊息時用 VS Co
 | `ls` | list | 這個房間有什麼？ |
 | `cd 房間名` | change directory | 走進去；`cd ..` 退回上一層、`cd ~` 回家 |
 
+路徑裡常看到的符號：
+
+| 符號 | 意思 | Windows（Git Bash）實際是 | Mac 實際是 |
+| --- | --- | --- | --- |
+| `~` | **家目錄**：你自己的使用者資料夾 | `C:\Users\你的名字`（Git Bash 顯示成 `/c/Users/你的名字`） | `/Users/你的名字` |
+| `/`（開頭） | **根目錄**：整台電腦最上層 | Git Bash 的最上層，`/c` 就是 C 槽 | 整顆硬碟最上層 |
+| `/`（中間） | 分隔資料夾 | `cards/amy/index.html` = cards 裡的 amy 裡的 index.html | 同左 |
+| `.` | 目前這個資料夾 | `code .` = 用 VS Code 打開這裡 | 同左 |
+| `..` | 上一層資料夾 | `cd ..` = 退回上一層 | 同左 |
+
+> 今天的東西都放在 `~`（家目錄）底下。找不到檔案時，先打 `pwd` 看看自己在哪。
+
 ### 2-1 下載尋寶地圖
 
 ```bash
@@ -107,7 +147,7 @@ cd ~/terminal-quest
 bash check.sh
 ```
 
-✅ 看到 🎉 全部過關，貼 🟩！
+✅ 看到 🎉 全部過關，貼上綠色便利貼！
 
 > ⚠️ `rm` 刪掉的東西**不會進資源回收筒**，用之前想清楚。
 > ⚠️ 終端機裡的 `Ctrl + C` 是「中斷」，不是複製。
@@ -141,8 +181,10 @@ bash check.sh
 > 用 HTTPS 把東西推上 GitHub 時，**GitHub 不接受你的帳號密碼**，要改用 **Token（個人存取權杖）**。
 > Token 就像一張「只能開特定門的鑰匙卡」：你決定它能進哪個 repo、能做什麼、什麼時候過期。
 
-1. GitHub 右上角頭像 → **Settings** → 左邊最下面 **Developer settings**
-2. **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
+1. 點 GitHub **右上角你的頭像** → **Settings**
+   - ⚠️ 是**你帳號的** Settings（網址是 `github.com/settings/...`），**不是** repo 頁面上那排分頁裡的 Settings
+   - 直接打開這個網址也可以：https://github.com/settings/personal-access-tokens
+2. 左邊選單拉到最下面 **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
 3. 照下面填：
 
 | 欄位 | 填什麼 | 為什麼 |
@@ -154,8 +196,12 @@ bash check.sh
 
 （Metadata 會自動變成 Read-only，不用管）
 
-4. 按 **Generate token**，**馬上複製**，先貼在記事本
-   - 這串字**離開頁面就再也看不到了**，忘了只能重新產生一張
+4. 按 **Generate token**，畫面上會出現一串 `github_pat_` 開頭的字，**按旁邊的複製按鈕，馬上複製**
+   - 這串字**離開頁面就再也看不到了**，沒複製到只能重新產生一張
+   - 等一下第一次 push 時才會用到，先存著：
+     - **Windows**：按 `Win + V` 打開「剪貼簿歷程記錄」，剛剛複製的 Token 會在裡面，之後直接點它就能貼上
+       - ⚠️ 第一次按 `Win + V` 會要你按「開啟」，開啟**之後**複製的東西才會被記住。所以建議在按 Generate token **之前**，先按一次 `Win + V` 把它開啟
+     - **Mac**：先貼到「備忘錄」，push 完再刪掉
 
 > ⚠️ Token 等於密碼：**不要傳給別人、不要截圖、不要 commit 進任何檔案**。
 > 💡 為什麼只要 Contents 的讀寫？因為你只會推到**自己的 fork**；開 PR 是在網頁上做的，不需要 Token。權限給越少越安全，這叫「最小權限原則」。
@@ -259,9 +305,14 @@ git push -u origin add-你的帳號
 ### Step 11：等審核
 
 - [ ] 去看看別人的 PR，在 **Files changed** 留一句話（問問題、給建議都可以），練習當審核者
+  - 不知道要說什麼？看 [CONTRIBUTING 的「溝通方式」](../CONTRIBUTING.md#溝通方式)，有例句
 - [ ] 老師審核通過、合併之後：
   - 你的 Issue 會**自動關閉**
   - 1～2 分鐘後，[名片牆](https://williamtsou.github.io/club-cards/) 上會出現你的名字 🎉
+
+> **Issue 留言 vs PR 留言**
+> - **Issue**：還沒動手前，討論「要不要做、做什麼、誰來做」。例如認領、問需求、回報進度
+> - **PR**：已經寫好程式碼，討論「這段程式碼寫得對不對」。可以針對某一行留言、要求修改
 
 ### Step 12：收尾：同步最新版、刪掉用完的分支
 
@@ -311,7 +362,20 @@ git branch -a
 
 **原則：後合併的人，負責把自己的修改接到最新的正式版上。**
 
-### 4-2 建練習場
+### 4-2 merge 是「誰合併進誰」？
+
+**`git merge X` = 把 X 合併進「你現在所在的分支（HEAD）」。** 被改到的永遠是你現在站的那個分支，X 不會變。
+
+| 指令 / 動作 | 誰 → 合併進 → 誰 |
+| --- | --- |
+| `git merge case1-theirs`（你站在 case1-mine） | case1-theirs → **case1-mine** |
+| `git pull upstream main`（你站在 add-你的帳號） | 老師的 main → **add-你的帳號** |
+| `git pull upstream main`（你站在 main） | 老師的 main → **你電腦的 main** |
+| 老師在 GitHub 按 PR 的 Merge | 你 fork 上的 add-你的帳號 → **老師的 main** |
+
+> 合併前先打 `git branch` 或 `git status`，確認自己站在哪個分支。
+
+### 4-3 建練習場
 
 ```bash
 cd ~/club-cards
@@ -320,7 +384,7 @@ bash scripts/conflict-lab.sh
 cd ~/conflict-lab
 ```
 
-### 4-3 三種情況
+### 4-4 三種情況
 
 | 情況 | 指令 | 正確解法 |
 | --- | --- | --- |
@@ -331,19 +395,23 @@ cd ~/conflict-lab
 - `git switch case1-mine`：切到「你的」分支（HEAD 移到這裡）
 - `git merge case1-theirs`：把「別人的」分支合併進來，改到同一行就會衝突
 
-每一種都這樣解：
+每一種都是同樣四步：
 
-1. 打開有衝突的檔案（VS Code 會標紅色）
-2. 點上方的 **Accept Current**（留你的 = HEAD）/ **Accept Incoming**（留別人的）/ **Accept Both**（都留），或自己手動改
-3. **刪掉** `<<<<<<<`、`=======`、`>>>>>>>` 三種標記
-4. 收尾：
+1. **決定內容**：打開有衝突的檔案（VS Code 會標顏色），決定最後要留什麼
+   - 可以點上方的 **Accept Current**（留你的 = HEAD）/ **Accept Incoming**（留別人的）/ **Accept Both**（都留），或自己手動改
+2. **刪掉標記**：`<<<<<<< HEAD`、`=======`、`>>>>>>> 分支名` 這三行一定要刪乾淨（用 Accept 按鈕的話會自動刪）
+3. **存檔，告訴 Git 解好了**：
+   ```bash
+   git add .        # 把解好的檔案放進信封
+   ```
+4. **完成這次合併**：
+   ```bash
+   git commit       # 會跳出 VS Code，裡面已經寫好 Merge 訊息，直接關掉那個分頁就完成
+   ```
 
-```bash
-git add .        # 告訴 Git「這個檔案的衝突我解好了」
-git commit       # 完成合併；會跳出 VS Code 讓你看訊息，直接關掉那個分頁就會完成
-```
+✅ 檢查：`git status` 顯示乾淨；`git log --oneline` 最上面多了一筆 `Merge ...`。
 
-### 4-4 先練習「反悔」
+### 4-5 先練習「反悔」
 
 做情況 1 之前，先故意放棄一次：
 
@@ -356,23 +424,40 @@ git status
 
 ✅ 檢查：`git status` 顯示一切乾淨，就像沒發生過。**解壞了隨時可以這樣重來。**
 
-### 4-5 你的 PR 真的有衝突？
+### 4-6 你的 PR 真的有衝突？
 
-剛好跟別人插在同一個位置，就會遇到真的衝突：
+**常見情境**：你和小明同時開了 PR，兩個都還沒合併，而且都改到同一個地方。這時**還不會**顯示衝突。老師先合併了小明的 PR，你的 PR 才會變成 **This branch has conflicts**。
 
-```bash
-cd ~/club-cards
-git switch add-你的帳號
-git pull upstream main     # 把老師最新的 main 合併進你的分支 → 出現 CONFLICT
-```
+流程：
 
-用情況 1 的方法解完，然後 `git add .` → `git commit` → `git push`，PR 會自動更新。
+1. **你負責解**（你是後合併的那個）。先把老師最新的 main 合併進你的分支：
+   ```bash
+   cd ~/club-cards
+   git switch add-你的帳號
+   git pull upstream main     # 老師的 main → 你的分支，出現 CONFLICT
+   ```
+2. **看是哪一種情況**：
+   - 兩邊都是新增（情況 1）、或是別人改了規則（情況 3）→ 直接照上面的四步解掉
+   - 同一行改成不同意思（情況 2）→ **先別解**，到**你的 PR** 留言問清楚，例如：
+     > @小明 你的 PR #5 把標題改成「名片牆」，我的改成「大家的自介」，衝突了。要用哪一個？還是合在一起？
+     > @williamtsou 也麻煩老師決定一下 🙏
+   - 等大家在 PR 留言裡決定好，再照決定的內容解
+3. 解完推上去，PR 會自動更新，衝突提示消失：
+   ```bash
+   git push
+   ```
+4. 在 PR 留言「衝突已解決，請再看一次」，等老師審核、合併
+
+> 討論要留在 **PR**（因為是在討論「這段程式碼要怎麼合」），不要私訊，之後其他人才看得到為什麼這樣改。
 
 ---
 
 ## 5. 課後任務
 
-到 [Issues](https://github.com/williamtsou/club-cards/issues) 看任務，在想做的 Issue 底下**留言「我來做」**就是認領。
+到 [Issues](https://github.com/williamtsou/club-cards/issues) 看任務，在想做的 Issue 底下**留言「我來做」**就是認領（任務 4 的功能 Issue 會由老師在課後開好）。
+
+- 已經有人留言認領的，就換一個，避免兩個人做同一件事
+- 有想做的功能但沒有 Issue？用「新功能」模板自己開一個，再留言認領
 
 | 任務 | 內容 | 必做？ |
 | --- | --- | --- |
@@ -484,7 +569,7 @@ git fetch origin --prune                     # 清掉舊紀錄
 1. 先打 `git status`，它通常會告訴你下一步
 2. 打 `pwd`，確認你在對的資料夾
 3. 查 [速查表的「常見錯誤」](cheatsheet.md#常見錯誤)
-4. 貼 🟥，舉手
+4. 換貼紅色便利貼，或直接舉手
 
 | 最常見的狀況 | 解法 |
 | --- | --- |
